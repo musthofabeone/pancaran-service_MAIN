@@ -1,0 +1,78 @@
+/* Create a TABLE TYPE for the procedure results */
+CREATE TYPE "ATA"."BPDETAILS" AS TABLE (
+            "DocEntry" INTEGER,
+            "CardCode" NVARCHAR(15),
+            "CardName" NVARCHAR(100),
+            "CardType" CHAR(1),
+            "GroupCode" SMALLINT,
+            "Phone1" NVARCHAR(20),
+            "Cellular" NVARCHAR(50),
+            "Fax" NVARCHAR(20),
+            "E_Mail" NVARCHAR(100),
+            "CntctPrsn" NVARCHAR(90),
+            "Notes" NVARCHAR(100),
+            "SlpCode" INTEGER,
+            "AliasName" NCLOB,
+            "validFor" CHAR(1),
+            "frozenFor" CHAR(1),
+            "ShipToDef" NVARCHAR(50),
+            "BillToDef" NVARCHAR(50),
+            "GroupNum" SMALLINT,
+            "IntrstRate" DECIMAL(21,6),
+            "ListNum" SMALLINT,
+            "Free_Text" NCLOB,
+            "U_OLDCODE" VARCHAR(1),
+            "Address" NVARCHAR(50) ,
+            "Street" NVARCHAR(100),
+            "Block" NVARCHAR(100),
+            "ZipCode" NVARCHAR(20),
+            "City" NVARCHAR(100),
+            "County" NVARCHAR(100),
+            "Country" NVARCHAR(3),
+            "State" NVARCHAR(3),
+            "UserSign" SMALLINT
+);
+
+/* Create the Procedure */
+CREATE PROCEDURE GETBP(IN updateDate NVARCHAR(15), OUT bpList "ATA"."BPDETAILS")
+ LANGUAGE SQLSCRIPT
+ READS SQL DATA AS
+ BEGIN
+   bpList =     
+    SELECT 
+    	X0."DocEntry", 
+    	X0."CardCode", 
+    	X0."CardName", 
+    	X0."CardType",
+    	X0."GroupCode", 
+    	X0."Phone1", 
+    	X0."Cellular", 
+    	X0."Fax",
+    	X0."E_Mail", 
+    	X0."CntctPrsn", 
+    	X0."Notes", 
+    	X0."SlpCode",
+    	X0."AliasName", 
+    	X0."validFor", 
+    	X0."frozenFor", 
+    	X0."ShipToDef",
+    	X0."BillToDef", 
+    	X0."GroupNum", 
+    	X0."IntrstRate", 
+    	X0."ListNum",
+    	X0."Free_Text", 
+    	'' AS "U_OLDCODE",
+    	X1."Address", 
+    	X1."Street", 
+    	X1."Block", 
+    	X1."ZipCode", 
+    	X1."City", 
+    	X1."County", 
+    	X1."Country", 
+    	X1."State", 
+    	X0."UserSign"
+	FROM "OCRD" X0
+    LEFT JOIN "CRD1" X1 ON X1."CardCode" = X0."CardCode"
+    WHERE X0."UpdateDate" >= :updateDate
+    ORDER BY X0."CardCode" ASC;
+ END;

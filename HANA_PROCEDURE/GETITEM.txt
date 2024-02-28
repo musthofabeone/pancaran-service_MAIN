@@ -1,0 +1,30 @@
+/* Create a TABLE TYPE for the procedure results */
+CREATE TYPE "ATA"."ITEMDETAILS" AS TABLE (
+            "ItemCode" NVARCHAR(50),
+            "CodeBars" NVARCHAR(100),
+            "ItemName" NVARCHAR(100),
+            "SalUnitMsr" NVARCHAR(10),
+            "UserText" NVARCHAR(1000),
+            "CreateDate" DATE,
+            "UpdateDate" DATE,
+            "MinStock" DOUBLE,
+            "MaxStock" DOUBLE,
+            "AvgPrice" DOUBLE,
+            "Rate" DOUBLE,
+            "OnHand" DOUBLE,
+            "WhsCode" NVARCHAR(50)
+);
+
+/* Create the Procedure */
+CREATE PROCEDURE GETITEM(OUT itemList "ATA"."ITEMDETAILS")
+ LANGUAGE SQLSCRIPT
+ READS SQL DATA AS
+ BEGIN
+   itemList =     
+    SELECT DISTINCT T0."ItemCode", T0."CodeBars", T0."ItemName", T0."SalUnitMsr", CAST(T0."UserText" AS NVARCHAR(1000)) AS "UserText", T0."CreateDate", T0."UpdateDate",
+    T2."MinStock", T2."MaxStock", T0."AvgPrice", T3."Rate", T0."OnHand", T2."WhsCode"
+    FROM "OITM" T0
+    INNER JOIN "OITW" T2 ON T0."ItemCode" = T2."ItemCode"
+    INNER JOIN "OVTG" T3 ON T0."VatGourpSa" = T3."Code"
+    WHERE T0."validFor" = 'Y' AND T0."ItemType" != 'F';
+ END;

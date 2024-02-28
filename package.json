@@ -1,0 +1,50 @@
+{
+  "name": "interface_trolley",
+  "version": "1.0.0",
+  "description": "Interfacing Trolley POS",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Trolley",
+    "POS",
+    "ServiceLayer",
+    "SAP",
+    "HANA",
+    "BOS"
+  ],
+  "author": "BOS",
+  "license": "ISC",
+  "dependencies": {
+    "base-64": "^0.1.0",
+    "body-parser": "^1.20.1",
+    "cron": "^2.1.0",
+    "express": "^4.18.2",
+    "express-winston": "^4.2.0",
+    "fast-json-stringify": "^5.1.0",
+    "fetch-cookie": "^0.7.3",
+    "fetch-timeout": "0.0.2",
+    "follow-redirects": "^1.14.9",
+    "fs": "0.0.1-security",
+    "jsonwebtoken": "^8.5.1",
+    "moment": "^2.29.4",
+    "momment": "0.0.1",
+    "morgan": "^1.10.0",
+    "mysql": "^2.17.1",
+    "node-abort-controller": "^3.0.1",
+    "node-cron": "^2.0.3",
+    "node-fetch": "^2.6.7",
+    "node-fetch-retry-timeout": "^1.2.1",
+    "nodejs-base64": "^2.0.0",
+    "nodemailer": "^6.9.1",
+    "pg": "^8.7.3",
+    "promise-fn-retry": "^1.0.10",
+    "retry": "^0.13.1",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1",
+    "winston-loggly-bulk": "^3.2.1",
+    "winston-papertrail": "^1.0.5"
+  }
+}
