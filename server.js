@@ -16,6 +16,8 @@ server.keepAliveTimeout = 61 * 1000;
 // SSL
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
 
+const https = require('http');
+const fs = require('fs');
 
 app.use(morgan('combined'));
   
@@ -30,4 +32,13 @@ app.use((req, res, next) => {
 routes(app);
 
 //app.listen(port);
-logger.info(`Payment -> Mobopay running → PORT ${server.address().port}`);
+//logger.info(`Payment -> Mobopay running → PORT ${server.address().port}`);
+
+https.createServer({
+    key: fs.readFileSync('pancaran-payment-gateway.key'),
+    cert: fs.readFileSync('pancaran-payment-gateway.crt')
+  }, app).listen(port, () => {
+     console.log("Run in port " + port);
+     console.log("Run in " + ENV + " mode");
+  });
+  
