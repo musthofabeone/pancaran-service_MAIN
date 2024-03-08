@@ -1876,7 +1876,7 @@ const prosesInterfacing = async (body, token, clientId, date, signature, referen
         .then(response => response.text())
         .then(async result => {
           const resultBody = JSON.parse(result)
-
+          logger.info("Response Mobopay: " + result )
           if (resultBody.resultCode == "0") {
             await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [referency])
             await connection.query('SELECT COUNT(*) "CountError" FROM paymenth2h."BOS_LOG_TRANSACTIONS" WHERE "REFERENCY" = $1 AND "STATUS" = \'4\'', [referency], async function (error, result, fields) {
