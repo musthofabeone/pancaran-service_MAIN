@@ -32,13 +32,13 @@ app.use((req, res, next) => {
 routes(app);
 
 //app.listen(port);
-//logger.info(`Payment -> Mobopay running → PORT ${server.address().port}`);
+logger.info(`Payment -> Mobopay running → PORT ${server.address().port}`);
 
-https.createServer({
-    key: fs.readFileSync('pancaran-payment-gateway.key'),
-    cert: fs.readFileSync('pancaran-payment-gateway.crt')
-  }, app).listen(port, () => {
-     console.log("Run in port " + port);
-     console.log("Run in " + ENV + " mode");
-  });
+// https.createServer({
+//     key: fs.readFileSync('pancaran-payment-gateway.key'),
+//     cert: fs.readFileSync('pancaran-payment-gateway.crt')
+//   }, app).listen(port, () => {
+//      console.log("Run in port " + port);
+//      console.log("Run in " + ENV + " mode");
+//   });
   
