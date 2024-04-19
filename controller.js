@@ -28,6 +28,7 @@ const { Logger } = require('winston');
 const { Promise } = require('node-fetch');
 const start = new Date();
 const CronJob = require('cron').CronJob;
+var nodeBase64 = require('nodejs-base64-converter');
 // create pool
 
 // SSL (Only if needed)
@@ -582,6 +583,8 @@ const dataValidation = async (trxid) => {
 exports.get_Verification = async function (req, res) {
   var start = new Date();
 
+  
+
   logger.info('(IN) Moboay -> Middleware: Proses Validation Payment, Body: ' + req.body.trxId);
 
   const timer = ms => new Promise(res => setTimeout(res, ms))
@@ -624,7 +627,7 @@ exports.post_statusPayment = async function (req, res) {
     'time': moment(start).format('HH:mm:DD')
   };
   res.json(rowdata);
-
+ 
   var data_transaction = [];
   data_transaction = [
     req.body.trxId
@@ -637,7 +640,7 @@ exports.post_statusPayment = async function (req, res) {
     , parseFloat(req.body.valueAmount)
     , req.body.customerReffNumber
     , '0'
-    , req.headers.authorization
+    , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
     , moment(new Date()).format("yyyyMMDD")
   ]
 
@@ -654,6 +657,7 @@ exports.post_statusPayment = async function (req, res) {
   // });
 
   if (req.body.resultCode == "1") {
+
     logger.info(req.body.customerReffNumber + " Success: Msg " + req.body.errorMessage)
     var data_transaction = [];
     data_transaction = [
@@ -667,7 +671,7 @@ exports.post_statusPayment = async function (req, res) {
       , parseFloat(req.body.valueAmount)
       , req.body.customerReffNumber
       , '0'
-      , req.headers.authorization
+      , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
       , moment(new Date()).format("yyyyMMDD")
     ]
 
@@ -757,7 +761,7 @@ exports.post_statusPayment = async function (req, res) {
       , parseFloat(req.body.valueAmount)
       , req.body.customerReffNumber
       , '0'
-      , req.headers.authorization
+      , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
     ]
 
     //logger.info(data_transaction)
