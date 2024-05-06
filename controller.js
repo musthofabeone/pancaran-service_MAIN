@@ -640,7 +640,7 @@ exports.post_statusPayment = async function (req, res) {
     , parseFloat(req.body.valueAmount)
     , req.body.customerReffNumber
     , '0'
-    , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
+    , 'Basic ' + nodeBase64.encode("SYSTEM:PnC$gRP@2018")
     , moment(new Date()).format("yyyyMMDD")
   ]
 
@@ -671,7 +671,7 @@ exports.post_statusPayment = async function (req, res) {
       , parseFloat(req.body.valueAmount)
       , req.body.customerReffNumber
       , '0'
-      , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
+      , 'Basic ' + nodeBase64.encode("SYSTEM:PnC$gRP@2018")
       , moment(new Date()).format("yyyyMMDD")
     ]
 
@@ -761,7 +761,7 @@ exports.post_statusPayment = async function (req, res) {
       , parseFloat(req.body.valueAmount)
       , req.body.customerReffNumber
       , '0'
-      , nodeBase64.encode("SYSTEM:PnC$gRP@2018")
+      , 'Basic ' + nodeBase64.encode("SYSTEM:PnC$gRP@2018")
     ]
 
     //logger.info(data_transaction)
