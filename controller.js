@@ -2227,6 +2227,7 @@ const getToken = (base64Key) => {
       .then(response => response.text())
       .then(result => {
         const resultToken = JSON.parse(result)
+        logger.info("Result Token:  " + resultToken.access_token)
         stringToken = resultToken.access_token
         resolve(resultToken.access_token)
       }).catch(error => logger.info('error', error));
