@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const crypto = require('crypto');
 var https = require('follow-redirects').https;
 var fs = require('fs');
-const privateKey = fs.readFileSync('./pancaran-pg-sap-dev.key');
+const privateKey = fs.readFileSync('./pancaran-payment-gateway.key');
 var jwt = require('jsonwebtoken');
 var moment = require('moment'); // untuk definisi tanggal
 const config = require('./config');
@@ -1880,26 +1880,30 @@ const prosesInterfacing = async (body, token, clientId, date, signature, referen
         .then(response => response.text())
         .then(async result => {
           const resultBody = JSON.parse(result)
-          logger.info("Response Mobopay: " + result )
+          logger.info("Response Mobopay: " + result)
+          logger.info("Result Code Response: " + resultBody.resultCode)
           if (resultBody.resultCode == "0") {
             await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [referency])
-            await connection.query('SELECT COUNT(*) "CountError" FROM paymenth2h."BOS_LOG_TRANSACTIONS" WHERE "REFERENCY" = $1 AND "STATUS" = \'4\'', [referency], async function (error, result, fields) {
-              if (error) {
-                logger.error(error)
-              } else {
-                for (var data of result.rows) {
-                  if (data.CountError != "0") {
-                    await logger.info("(IN) Mobopay - Middleware  (" + dbName + "): Do Payment Error : Payment Failed: " + referency + " , Error Code: " + resultBody.errorCode + " Msg Error: " + resultBody.message)
 
-                    await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
+            await logger.info("(IN) Mobopay - Middleware  (" + dbName + "): Do Payment Error : Payment Failed: " + referency + " , Error Code: " + resultBody.errorCode + " Msg Error: " + resultBody.message)
+
+            await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
                       'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
                       'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', [resultBody.message, referency, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), resultBody.errorCode]);
 
-                    resolve({ success: "error", trxId })
-                  }
-                }
-              }
-            });
+            resolve({ success: "error", trxId })
+            
+            //await connection.query('SELECT COUNT(*) "CountError" FROM paymenth2h."BOS_LOG_TRANSACTIONS" WHERE "REFERENCY" = $1 AND "STATUS" = \'4\'', [referency], async function (error, result, fields) {
+              //if (error) {
+                //logger.error(error)
+              //} else {
+               // for (var data of result.rows) {
+               //   if (data.CountError != "0") {
+                    
+                //  }
+               // }
+             // }
+           // });
           }
           else if (resultBody.resultCode == "1") {
 
