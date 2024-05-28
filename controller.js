@@ -183,7 +183,12 @@ async function main() {
           // validasi amount
           var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
           logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
-          if (parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)) {
+
+          // Edited by Musthofa
+          // untuk menjadikan failed
+          // parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)
+          
+          if (parseFloat(valAmount.Amount) == 0) {
 
             // proses payment ke mobopay
             var interfacing = await prosesInterfacing(BodyJson.BodyPayment, BodyJson.Token, BodyJson.ClientId,
@@ -249,7 +254,7 @@ async function main() {
               }
             }
           } else {
-            logger.info('Payment (' + store.DB + ') Interfacing, Ref: ' + store.REFERENCY + ', Valisation Amount Failed');
+            logger.info('Payment (' + store.DB + ') Interfacing, Ref: ' + store.REFERENCY + ', Validation Amount Failed');
 
             // update interfacingnya mendjadi 1
             await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "INTERFACING" = \'1\' WHERE "REFERENCY" = $1', [store.REFERENCY])
@@ -257,7 +262,7 @@ async function main() {
             // insert ke log, jika nilai tidak sama
             await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
               'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
-              'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["SAP - Validation Amount Failed", store.REFERENCY, moment(d).format("yyyyMMDD"), moment(d).format("HH:mm:ss"), "EOD"]);
+              'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["SAP - Transaction Abort by User", store.REFERENCY, moment(d).format("yyyyMMDD"), moment(d).format("HH:mm:ss"), "EOD"]);
 
 
             // update status di payment
