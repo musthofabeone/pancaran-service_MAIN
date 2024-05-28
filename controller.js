@@ -176,8 +176,8 @@ async function main() {
       if (CutOff == "FALSE") { // jika tidak cut off maka transaksi akan dikirim ke mobopay
         // body payment
         typePayment = store.PAYMENTOUTTYPE;
-        var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
-        logger.debug(store.REFERENCY + ", BodyJson " + BodyJson);
+        //var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
+        //logger.debug(store.REFERENCY + ", BodyJson " + BodyJson);
         if (CutOff == "FALSE") {
 
           // validasi amount
