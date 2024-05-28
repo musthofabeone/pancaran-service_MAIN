@@ -223,7 +223,7 @@ async function main() {
 
               logger.info("Transaction (" + store.DB + "): " + store.REFERENCY + " Has Finished");
             } else { // jika proses ke mobopay gagal
-              var getEntry = await getEntryUdo(store.REFERENCY, BodyJson.DbName, store.trxId, store.PAYMENTOUTTYPE, "Y")
+              var getEntry = await getEntryUdo(store.REFERENCY, store.DB, store.trxId, store.PAYMENTOUTTYPE, "Y")
               if (getEntry.length > 0) {
                 let Login = await LoginSL(store.DB)
                 if (Login !== "LoginError") {
