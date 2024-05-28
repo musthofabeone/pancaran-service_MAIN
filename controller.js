@@ -172,23 +172,23 @@ async function main() {
       d = new Date();
       _time = moment(d).format("HHmm")
       var CutOff = await checkCuttOff(store.DB, store.TRANSFERTYPE, _time, "Basic " + config.auth_basic)
-      logger.debug(store.REFERENCY + ", CutOff" + CutOff);
+      logger.debug(store.REFERENCY + ", CutOff : " + CutOff);
       if (CutOff == "FALSE") { // jika tidak cut off maka transaksi akan dikirim ke mobopay
         // body payment
         typePayment = store.PAYMENTOUTTYPE;
         var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
-
-        if (Object.keys(BodyJson).length > 0) {
+        logger.debug(store.REFERENCY + ", BodyJson " + BodyJson);
+        if (CutOff == "FALSE") {
 
           // validasi amount
-          var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
-          logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
-
+         // var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
+          //logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
+    
           // Edited by Musthofa
           // untuk menjadikan failed
           // parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)
           
-          if (parseFloat(valAmount.Amount) == 0) {
+          if (store.REFERENCY != "OUT/3/105") {
 
             // proses payment ke mobopay
             var interfacing = await prosesInterfacing(BodyJson.BodyPayment, BodyJson.Token, BodyJson.ClientId,
