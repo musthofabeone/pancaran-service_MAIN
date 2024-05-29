@@ -186,7 +186,7 @@ async function main() {
 
           // validasi amount
          var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
-          logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
+          //logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
     
           // Edited by Musthofa
           // untuk menjadikan failed
@@ -536,7 +536,7 @@ function generateMessageBodySignature(message, privateKey) {
     sign.update(message);
     sign.end();
     const signature = sign.sign(privateKey);
-    logger.info("signature (" + db.DB + "): " + signature);
+    logger.info("signature: " + signature);
     return signature.toString('base64')
   } catch (error) {
     logger.error(error);
