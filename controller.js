@@ -171,24 +171,28 @@ async function main() {
       resultRowCount++;
       d = new Date();
       _time = moment(d).format("HHmm")
+
+      // check cut off
       var CutOff = await checkCuttOff(store.DB, store.TRANSFERTYPE, _time, "Basic " + config.auth_basic)
       logger.debug(store.REFERENCY + ", CutOff : " + CutOff);
+      
       if (CutOff == "FALSE") { // jika tidak cut off maka transaksi akan dikirim ke mobopay
         // body payment
         typePayment = store.PAYMENTOUTTYPE;
-        //var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
-        //logger.debug(store.REFERENCY + ", BodyJson " + BodyJson);
-        if (CutOff == "FALSE") {
+        var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
+        logger.debug(store.REFERENCY + ", BodyJson : " + BodyJson);
+        
+        if (Object.keys(BodyJson).length > 0) {
 
           // validasi amount
-         // var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
-          //logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
+         var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
+          logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
     
           // Edited by Musthofa
           // untuk menjadikan failed
           // parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)
           
-          if (store.REFERENCY != "OUT/3/105") {
+          if (parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)) {
 
             // proses payment ke mobopay
             var interfacing = await prosesInterfacing(BodyJson.BodyPayment, BodyJson.Token, BodyJson.ClientId,
@@ -262,7 +266,7 @@ async function main() {
             // insert ke log, jika nilai tidak sama
             await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
               'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
-              'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["SAP - Transaction Abort by User", store.REFERENCY, moment(d).format("yyyyMMDD"), moment(d).format("HH:mm:ss"), "EOD"]);
+              'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["SAP - Validation Amount Failed", store.REFERENCY, moment(d).format("yyyyMMDD"), moment(d).format("HH:mm:ss"), "EOD"]);
 
 
             // update status di payment
@@ -532,6 +536,7 @@ function generateMessageBodySignature(message, privateKey) {
     sign.update(message);
     sign.end();
     const signature = sign.sign(privateKey);
+    logger.info("signature (" + db.DB + "): " + signature);
     return signature.toString('base64')
   } catch (error) {
     logger.error(error);
@@ -1784,7 +1789,9 @@ const interfacing_mobopay_Transaction = async (referency, payment, outType, trxI
               })
               //prosesInterfacing(bodyPayment, _token, _clientId, date, _signature, data.customerReferenceNumber, data.NM_DB, payment, outType, trxId)
             }
-          }
+          }else(
+            logger.error("Get Details Transaction Error: " + error)
+          )
         })
 
     } catch (error) {
@@ -2239,7 +2246,7 @@ const getToken = (base64Key) => {
         logger.info("Result Token:  " + resultToken.access_token)
         stringToken = resultToken.access_token
         resolve(resultToken.access_token)
-      }).catch(error => logger.info('error', error));
+      }).catch(error => logger.info('Error Token', error));
   });
 };
 
