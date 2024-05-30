@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const crypto = require('crypto');
 var https = require('follow-redirects').https;
 var fs = require('fs');
-const privateKey = fs.readFileSync('./pancaran-pg-sap-dev.key');
+const privateKey = fs.readFileSync('./pancaran-payment-gateway.key');
 var jwt = require('jsonwebtoken');
 var moment = require('moment'); // untuk definisi tanggal
 const config = require('./config');
@@ -171,18 +171,27 @@ async function main() {
       resultRowCount++;
       d = new Date();
       _time = moment(d).format("HHmm")
+
+      // check cut off
       var CutOff = await checkCuttOff(store.DB, store.TRANSFERTYPE, _time, "Basic " + config.auth_basic)
-      logger.debug(store.REFERENCY + ", CutOff" + CutOff);
+      logger.debug(store.REFERENCY + ", CutOff : " + CutOff);
+      
       if (CutOff == "FALSE") { // jika tidak cut off maka transaksi akan dikirim ke mobopay
         // body payment
         typePayment = store.PAYMENTOUTTYPE;
         var BodyJson = await interfacing_mobopay_Transaction(store.REFERENCY, store.ACTION, store.PAYMENTOUTTYPE, store.trxId, store.DB)
-
+        logger.debug(store.REFERENCY + ", BodyJson : " + BodyJson);
+        
         if (Object.keys(BodyJson).length > 0) {
 
           // validasi amount
-          var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
-          logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
+         var valAmount = await getValidationAmount(store.REFERENCY, store.DB, "Basic " + config.auth_basic)
+          //logger.debug(parseFloat(valAmount.Amount) + " - " + parseFloat(BodyJson.Amount))
+    
+          // Edited by Musthofa
+          // untuk menjadikan failed
+          // parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)
+          
           if (parseFloat(valAmount.Amount) === parseFloat(BodyJson.Amount)) {
 
             // proses payment ke mobopay
@@ -218,7 +227,7 @@ async function main() {
 
               logger.info("Transaction (" + store.DB + "): " + store.REFERENCY + " Has Finished");
             } else { // jika proses ke mobopay gagal
-              var getEntry = await getEntryUdo(store.REFERENCY, BodyJson.DbName, store.trxId, store.PAYMENTOUTTYPE, "Y")
+              var getEntry = await getEntryUdo(store.REFERENCY, store.DB, store.trxId, store.PAYMENTOUTTYPE, "Y")
               if (getEntry.length > 0) {
                 let Login = await LoginSL(store.DB)
                 if (Login !== "LoginError") {
@@ -249,7 +258,7 @@ async function main() {
               }
             }
           } else {
-            logger.info('Payment (' + store.DB + ') Interfacing, Ref: ' + store.REFERENCY + ', Valisation Amount Failed');
+            logger.info('Payment (' + store.DB + ') Interfacing, Ref: ' + store.REFERENCY + ', Validation Amount Failed');
 
             // update interfacingnya mendjadi 1
             await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "INTERFACING" = \'1\' WHERE "REFERENCY" = $1', [store.REFERENCY])
@@ -527,6 +536,7 @@ function generateMessageBodySignature(message, privateKey) {
     sign.update(message);
     sign.end();
     const signature = sign.sign(privateKey);
+    logger.info("signature: " + signature);
     return signature.toString('base64')
   } catch (error) {
     logger.error(error);
@@ -1779,7 +1789,9 @@ const interfacing_mobopay_Transaction = async (referency, payment, outType, trxI
               })
               //prosesInterfacing(bodyPayment, _token, _clientId, date, _signature, data.customerReferenceNumber, data.NM_DB, payment, outType, trxId)
             }
-          }
+          }else(
+            logger.error("Get Details Transaction Error: " + error)
+          )
         })
 
     } catch (error) {
@@ -1880,26 +1892,30 @@ const prosesInterfacing = async (body, token, clientId, date, signature, referen
         .then(response => response.text())
         .then(async result => {
           const resultBody = JSON.parse(result)
-          logger.info("Response Mobopay: " + result )
+          logger.info("Response Mobopay: " + result)
+          logger.info("Result Code Response: " + resultBody.resultCode)
           if (resultBody.resultCode == "0") {
             await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [referency])
-            await connection.query('SELECT COUNT(*) "CountError" FROM paymenth2h."BOS_LOG_TRANSACTIONS" WHERE "REFERENCY" = $1 AND "STATUS" = \'4\'', [referency], async function (error, result, fields) {
-              if (error) {
-                logger.error(error)
-              } else {
-                for (var data of result.rows) {
-                  if (data.CountError != "0") {
-                    await logger.info("(IN) Mobopay - Middleware  (" + dbName + "): Do Payment Error : Payment Failed: " + referency + " , Error Code: " + resultBody.errorCode + " Msg Error: " + resultBody.message)
 
-                    await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
+            await logger.info("(IN) Mobopay - Middleware  (" + dbName + "): Do Payment Error : Payment Failed: " + referency + " , Error Code: " + resultBody.errorCode + " Msg Error: " + resultBody.message)
+
+            await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
                       'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
                       'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', [resultBody.message, referency, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), resultBody.errorCode]);
 
-                    resolve({ success: "error", trxId })
-                  }
-                }
-              }
-            });
+            resolve({ success: "error", trxId })
+            
+            //await connection.query('SELECT COUNT(*) "CountError" FROM paymenth2h."BOS_LOG_TRANSACTIONS" WHERE "REFERENCY" = $1 AND "STATUS" = \'4\'', [referency], async function (error, result, fields) {
+              //if (error) {
+                //logger.error(error)
+              //} else {
+               // for (var data of result.rows) {
+               //   if (data.CountError != "0") {
+                    
+                //  }
+               // }
+             // }
+           // });
           }
           else if (resultBody.resultCode == "1") {
 
@@ -2227,9 +2243,10 @@ const getToken = (base64Key) => {
       .then(response => response.text())
       .then(result => {
         const resultToken = JSON.parse(result)
+        logger.info("Result Token:  " + resultToken.access_token)
         stringToken = resultToken.access_token
         resolve(resultToken.access_token)
-      }).catch(error => logger.info('error', error));
+      }).catch(error => logger.info('Error Token', error));
   });
 };
 
