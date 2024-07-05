@@ -418,7 +418,6 @@ const getDataAfter20minutes = async () => {
     } else {
       logger.error("Get DocEntry Error (" + db + "): " + reference);
     }
-    await timer(5000)
   };
 }
 
