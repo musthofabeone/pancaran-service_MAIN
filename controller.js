@@ -333,7 +333,8 @@ const jobs = new CronJob({
   cronTime: '*/5 * * * * *',
   onTick: async () => {
     try {
-      main()
+      main();
+      getDataAfter20minutes();
     } catch (err) {
       resultRowCount = 0
       jobs.start();
@@ -344,7 +345,80 @@ const jobs = new CronJob({
   timeZone: 'UTC'
 })
 
+const getDataAfter20minutes = async () => {
+  let result = await connection.query('SELECT DISTINCT T0.* FROM (SELECT ROW_NUMBER () OVER ( PARTITION BY X0."REFERENCY" ORDER BY X0."ACTION") "ROWNUMBER",  * FROM(  ' +
+    'SELECT  X0."REFERENCY", X0."TRANSFERTYPE", TO_CHAR(X0."TRANSTIME", \'HHMI\') "TRANSTIME", EXTRACT(EPOCH FROM(CURRENT_TIMESTAMP - (X1."TRANSDATE" + X1."TRANSTIME"))) / 60 AS "INTERVAL" ' +
+    ', X0."DB", \'PAYMENT\' AS "ACTION", X0."CUTOFF", X0."PAYMENTNO" ' +
+    ', "PAYMENTOUTTYPE", "DATACOUNT", COALESCE(X1."TRXID", \'\') "TRXID"  ' +
+    'FROM paymenth2h."BOS_TRANSACTIONS" X0  ' +
+    'INNER JOIN( ' +
+    'SELECT MAX("STATUS") "DATACOUNT", "REFERENCY", COALESCE("TRXID", \'0\') "TRXID", "TRANSDATE", "TRANSTIME" FROM paymenth2h."BOS_LOG_TRANSACTIONS" ' +
+    'WHERE "TRXID" <> \'\' AND "STATUS" = \'2\' ' +
+    'GROUP BY "REFERENCY", "TRXID", "TRANSDATE", "TRANSTIME") X1 ON X0."REFERENCY" = X1."REFERENCY"  ' +
+    'WHERE X0."INTERFACING" IN(\'1\')  ' +
+    'GROUP BY X0."REFERENCY", X0."TRANSFERTYPE", X0."TRANSDATE", X0."TRANSTIME", X0."DB", X0."ACTION" ' +
+    ', X0."PAYMENTOUTTYPE", X1."TRXID", X0."CUTOFF", X0."PAYMENTNO", "DATACOUNT", X1."TRANSDATE", X1."TRANSTIME" ' +
+    'ORDER BY X0."REFERENCY" ASC) X0) T0 ' +
+    'WHERE "INTERVAL" >= 20  ' +
+    'AND "REFERENCY" NOT IN( ' +
+    'SELECT X0."customerReffNumber" FROM paymenth2h."BOS_DO_STATUS" X0 ' +
+    'INNER JOIN paymenth2h."BOS_LOG_TRANSACTIONS" X1 ON X0."customerReffNumber" = X1."REFERENCY" ' +
+    'WHERE "STATUS" = \'0\') ' +
+    'AND "REFERENCY" NOT IN( ' +
+    'SELECT X0."REFERENCY" FROM paymenth2h."BOS_LOG_TRANSACTIONS" X0 ' +
+    'WHERE "STATUS" = \'4\')')
 
+  for await (let store of result.rows) {
+    resultRowCount++;
+    d = new Date();
+    _time = moment(d).format("HHmm")
+
+    var getEntry = await getEntryUdo(store.REFERENCY, store.DB,  store.TRXID, store.PAYMENTOUTTYPE, "Y")
+    if (getEntry.length > 0) {
+      let Login = await LoginSL(store.DB)
+      if (Login !== "LoginError") {
+        let updateUdo
+        await Object.keys(getEntry).forEach(async function (key) {
+          if (getEntry[key].DocEntry != "") {
+            updateUdo = await updateLineUdo(getEntry[key].DocEntry, getEntry[key].LineId, getEntry[key].TrxId, getEntry[key].Auth
+              , getEntry[key].DbName, getEntry[key].Referency, getEntry[key].OutType, "Y", store.PAYMENTNO, getEntry[key].OutType)
+            if (getEntry[key].OutType === "OUTSTATUS") {
+              console.log("update DocEntry")
+              var getEntryOut = await getEntryUdo(store.REFERENCY, store.DB, "", 'OUT', "Y")
+              await Object.keys(getEntryOut).forEach(async function (key) {
+                updateUdo = await updateLineUdo(getEntryOut[key].DocEntry, getEntryOut[key].LineId, getEntryOut[key].TrxId, getEntryOut[key].Auth
+                  , getEntryOut[key].DbName, getEntryOut[key].Referency, getEntryOut[key].OutType, "Y", store.PAYMENTNO, "OUTSTATUS");
+
+              });
+            }
+
+            if (updateUdo === "success") {
+              await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "CUTOFF" = \'Y\', "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [store.REFERENCY])
+
+              await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
+                'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
+                'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["Transaction Failed withosut response Mobopay", store.REFERENCY, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), "EOD"], async function (error, result, fields) {
+                  if (error) {
+                    logger.error(error)
+                  }
+                });
+            } else {
+              logger.error("Error");
+            }
+          }
+
+        })
+
+
+      } else {
+        logger.error(Login);
+      }
+    } else {
+      logger.error("Get DocEntry Error (" + db + "): " + reference);
+    }
+    await timer(5000)
+  };
+}
 const getEntryUdo = async (referency, dbName, trxId, outType, error) => {
   return new Promise((resolve, reject) => {
 
