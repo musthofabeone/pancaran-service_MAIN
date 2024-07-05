@@ -376,30 +376,30 @@ const getDataAfter20minutes = async () => {
 
     var getEntry = await getEntryUdo(store.REFERENCY, store.DB,  store.TRXID, store.PAYMENTOUTTYPE, "Y")
     if (getEntry.length > 0) {
-      let Login = await LoginSL(db)
+      let Login = await LoginSL(store.DB)
       if (Login !== "LoginError") {
         let updateUdo
         await Object.keys(getEntry).forEach(async function (key) {
           if (getEntry[key].DocEntry != "") {
             updateUdo = await updateLineUdo(getEntry[key].DocEntry, getEntry[key].LineId, getEntry[key].TrxId, getEntry[key].Auth
-              , getEntry[key].DbName, getEntry[key].Referency, getEntry[key].OutType, "Y", docnumOut, getEntry[key].OutType)
+              , getEntry[key].DbName, getEntry[key].Referency, getEntry[key].OutType, "Y", store.PAYMENTNO, getEntry[key].OutType)
             if (getEntry[key].OutType === "OUTSTATUS") {
               console.log("update DocEntry")
-              var getEntryOut = await getEntryUdo(reference, db, "", 'OUT', "Y")
+              var getEntryOut = await getEntryUdo(store.REFERENCY, store.DB, "", 'OUT', "Y")
               await Object.keys(getEntryOut).forEach(async function (key) {
                 updateUdo = await updateLineUdo(getEntryOut[key].DocEntry, getEntryOut[key].LineId, getEntryOut[key].TrxId, getEntryOut[key].Auth
-                  , getEntryOut[key].DbName, getEntryOut[key].Referency, getEntryOut[key].OutType, "Y", docnumOut, "OUTSTATUS");
+                  , getEntryOut[key].DbName, getEntryOut[key].Referency, getEntryOut[key].OutType, "Y", store.PAYMENTNO, "OUTSTATUS");
 
               });
             }
 
             if (updateUdo === "success") {
-              await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "CUTOFF" = \'Y\', "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [reference])
+              await connection.query('UPDATE paymenth2h."BOS_TRANSACTIONS" SET "CUTOFF" = \'Y\', "INTERFACING" = \'1\', "SUCCESS" = \'N\' WHERE "REFERENCY" = $1', [store.REFERENCY])
 
               // insert ke log jika terkena cutoff
               await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
                 'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
-                'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["Transaction Failed", reference, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), "EOD"], async function (error, result, fields) {
+                'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["Transaction Failed without Response", store.REFERENCY, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), "EOD"], async function (error, result, fields) {
                   if (error) {
                     logger.error(error)
                   }
