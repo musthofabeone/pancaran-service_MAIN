@@ -399,7 +399,7 @@ const getDataAfter20minutes = async () => {
               // insert ke log jika terkena cutoff
               await connection.query('INSERT INTO paymenth2h."BOS_LOG_TRANSACTIONS"("PAYMENTOUTTYPE", "PAYMENTNO", "TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", "TRANSDATE", "TRANSTIME", "STATUS", "REASON", "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID", "ERRORCODE")' +
                 'SELECT "PAYMENTOUTTYPE", "PAYMENTNO","TRXID", "REFERENCY", "VENDOR", "ACCOUNT", "AMOUNT", $3, $4, 4, $1, "BANKCHARGE", "FLAGUDO", "SOURCEACCOUNT", "TRANSFERTYPE", "CLIENTID",  $5' +
-                'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["Transaction Failed without Response", store.REFERENCY, moment(start).format("yyyyMMDD"), moment(start).format("HH:mm:ss"), "EOD"], async function (error, result, fields) {
+                'FROM paymenth2h."BOS_TRANSACTIONS" WHERE "REFERENCY" = $2 limit 1', ["Transaction Failed without Response", store.REFERENCY, moment(d).format("yyyyMMDD"), moment(d).format("HH:mm:ss"), "EOD"], async function (error, result, fields) {
                   if (error) {
                     logger.error(error)
                   }
